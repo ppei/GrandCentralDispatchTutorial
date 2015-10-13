@@ -24,16 +24,38 @@ class PhotoManager {
   }
 
   private var _photos: [Photo] = []
+  
+  private let concurrentPhotoQueue = dispatch_queue_create(
+    "com.raywenderlich.GooglyPuff.photoQueue", DISPATCH_QUEUE_CONCURRENT)
+
+  
   var photos: [Photo] {
+    
+    /*
     // FIXME: Not thread-safe
-    return _photos
+    return _photos*/
+    var photosCopy: [Photo]!
+    dispatch_sync(concurrentPhotoQueue) { // 1
+      photosCopy = self._photos // 2
+    }
+    return photosCopy
+    
   }
 
+  
   func addPhoto(photo: Photo) {
+    /*
     // FIXME: Not thread-safe
     _photos.append(photo)
     dispatch_async(dispatch_get_main_queue()) {
       self.postContentAddedNotification()
+    }*/
+    
+    dispatch_barrier_async(concurrentPhotoQueue) { // 1
+      self._photos.append(photo) // 2
+      dispatch_async(GlobalMainQueue) { // 3
+        self.postContentAddedNotification()
+      }
     }
   }
 
